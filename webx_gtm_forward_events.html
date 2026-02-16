@@ -1,0 +1,60 @@
+<script>
+  /**
+   * GTM -> Optimizely Event Forwarder
+    *
+    * This script forwards GTM dataLayer events to Optimizely Web Experimentation.
+    * It ensures the event is configured in the Optimizely project before tracking
+    * and forwards the associated dataLayer properties as tags.
+    */
+  (() => {
+    'use strict';
+
+    // Get current event name from GTM
+    // Note: GTM replaces {{ Event }} with the value of the 'event' key in the current dataLayer push.
+    const eventName = "{{ Event }}";
+
+    // Early exit if Optimizely is not loaded or properly initialized
+    const optimizely = window.optimizely;
+    const isSnippetActive = optimizely && typeof optimizely.get === 'function' && !Array.isArray(optimizely);
+
+    if (!isSnippetActive) return;
+
+    try {
+      // Retrieve Optimizely Event Configuration
+      const optimizelyData = optimizely.get('data');
+      if (!optimizelyData?.events) return;
+
+      // Check if the current GTM event matches an Optimizely API name
+      const configuredEvents = Object.values(optimizelyData.events);
+      const isMatched = configuredEvents.some((configData) => configData.apiName === eventName);
+
+      if (isMatched) {
+        // Find the properties for this event in the dataLayer
+        const dataLayer = window.dataLayer || [];
+        const eventRecord = [...dataLayer].reverse().find((item) => item?.event === eventName);
+
+        // Push to Optimizely
+        window.optimizely = window.optimizely || [];
+        window.optimizely.push({
+          type: 'event',
+          eventName: event,
+          tags: eventRecord || {},
+        });
+      }
+    } catch (error) {
+      console.error('Optimizely GTM Forwarder Error:', error.message);
+    }
+
+    // Self-cleanup: Remove script from DOM
+    const currentScript =
+      document.currentScript ||
+      (() => {
+        const scripts = document.getElementsByTagName('script');
+        return scripts[scripts.length - 1];
+      })();
+
+    if (currentScript?.parentNode) {
+      currentScript.parentNode.removeChild(currentScript);
+    }
+  })();
+</script>
