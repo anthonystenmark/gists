@@ -29,18 +29,22 @@ const forwardToOptimizely = (item) => {
         // Otherwise push the event to Optimizely.
         if (!isMatched) return;
 
-        const {
-          event: _event,
-          'gtm.uniqueEventId': _uniqueId,
-          'gtm.triggers': _triggers,
-          ...cleanedProperties
-        } = item;
+        var cleanedProperties = {};
+        for (var key in item) {
+          if (item.hasOwnProperty(key)) {
+            if (key !== 'event' && key !== 'gtm.uniqueEventId' && key !== 'gtm.triggers') {
+              cleanedProperties[key] = item[key];
+            }
+          }
+        }
 
         window.optimizely.push({
           type: 'event',
           eventName: eventName,
           properties: cleanedProperties
         });
+
+        console.log('Optimizely Forwarder: Pushed event', eventName, cleanedProperties);
       }
     } catch (e) {
       return;
